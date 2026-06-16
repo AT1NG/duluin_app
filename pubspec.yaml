@@ -1,0 +1,59 @@
+name: duluin
+description: Aplikasi manajemen tugas cerdas untuk mahasiswa - Duluin
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  
+  # Unique Device ID
+  device_info_plus: ^9.1.1
+  
+  # Notifications
+  flutter_local_notifications: ^17.2.1
+  timezone: ^0.9.2
+  flutter_timezone: ^5.1.0
+
+  
+  # Email (via URL launcher / mailto)
+  url_launcher: ^6.2.3
+  
+  # UUID generation
+  uuid: ^4.3.3
+  
+  # Date formatting
+  intl: ^0.19.0
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+  
+  # Charts / Progress
+  fl_chart: ^0.68.0
+  percent_indicator: ^4.0.1
+  
+  # HTTP Client
+  http: ^1.2.0
+
+  # Firebase Cloud Database
+  firebase_core: ^2.32.0
+  cloud_firestore: ^4.17.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

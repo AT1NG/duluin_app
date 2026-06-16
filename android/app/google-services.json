@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "956938793411",
+    "project_id": "ating-task-manager",
+    "storage_bucket": "ating-task-manager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956938793411:android:84403c1d1cb21dab97cd76",
+        "android_client_info": {
+          "package_name": "com.example.ating_task_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQpcdZQ6rJ7CJe-N1442_FS_ZsIT118E8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956938793411:android:c3c28f42e607015297cd76",
+        "android_client_info": {
+          "package_name": "com.example.duluin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQpcdZQ6rJ7CJe-N1442_FS_ZsIT118E8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
