@@ -473,104 +473,108 @@ class TaskProvider extends ChangeNotifier {
   }
 
   Future<void> _scheduleNotification(TaskModel task) async {
-    final baseId = _getNotificationId(task.id);
-    final id1h = baseId;
-    final id1d = baseId + 1000000;
-    final idDeadline = baseId + 2000000;
+    try {
+      final baseId = _getNotificationId(task.id);
+      final id1h = baseId;
+      final id1d = baseId + 1000000;
+      final idDeadline = baseId + 2000000;
 
-    // Cancel existing scheduled notifications for this task first
-    await flutterLocalNotificationsPlugin.cancel(id1h);
-    await flutterLocalNotificationsPlugin.cancel(id1d);
-    await flutterLocalNotificationsPlugin.cancel(idDeadline);
+      // Cancel existing scheduled notifications for this task first
+      await flutterLocalNotificationsPlugin.cancel(id1h);
+      await flutterLocalNotificationsPlugin.cancel(id1d);
+      await flutterLocalNotificationsPlugin.cancel(idDeadline);
 
-    if (task.isDone) return;
+      if (task.isDone) return;
 
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'duluin_reminders',
-      'Pengingat Tugas Duluin',
-      channelDescription: 'Saluran notifikasi untuk pengingat tugas H-1 Jam/Hari',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-    );
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'duluin_reminders',
+        'Pengingat Tugas Duluin',
+        channelDescription: 'Saluran notifikasi untuk pengingat tugas H-1 Jam/Hari',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+      );
 
-    const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+      const DarwinNotificationDetails iOSDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
-    const NotificationDetails platformDetails = NotificationDetails(
-      android: androidDetails,
-      iOS: iOSDetails,
-    );
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iOSDetails,
+      );
 
-    final now = DateTime.now();
+      final now = DateTime.now();
 
-    // 1. Schedule H-1 Day Reminder
-    if (task.remind1d) {
-      final triggerTime1d = task.deadline.subtract(const Duration(days: 1));
-      if (triggerTime1d.isAfter(now)) {
-        final tzDateTime1d = tz.TZDateTime.from(triggerTime1d, tz.local);
+      // 1. Schedule H-1 Day Reminder
+      if (task.remind1d) {
+        final triggerTime1d = task.deadline.subtract(const Duration(days: 1));
+        if (triggerTime1d.isAfter(now)) {
+          final tzDateTime1d = tz.TZDateTime.from(triggerTime1d, tz.local);
+          try {
+            await flutterLocalNotificationsPlugin.zonedSchedule(
+              id1d,
+              '🔔 Pengingat H-1 Hari: ${task.name}',
+              'Jangan lupa untuk menyelesaikan tugas ini! 💪',
+              tzDateTime1d,
+              platformDetails,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            );
+            debugPrint('Scheduled 1d notif for: ${task.name} at $tzDateTime1d');
+          } catch (e) {
+            debugPrint('Error scheduling 1d notif: $e');
+          }
+        }
+      }
+
+      // 2. Schedule H-1 Hour Reminder
+      if (task.remind1h) {
+        final triggerTime1h = task.deadline.subtract(const Duration(hours: 1));
+        if (triggerTime1h.isAfter(now)) {
+          final tzDateTime1h = tz.TZDateTime.from(triggerTime1h, tz.local);
+          try {
+            await flutterLocalNotificationsPlugin.zonedSchedule(
+              id1h,
+              '🚨 Pengingat H-1 Jam: ${task.name}',
+              'Waktu sisa 1 jam lagi! Ayo bereskan! ⚡',
+              tzDateTime1h,
+              platformDetails,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            );
+            debugPrint('Scheduled 1h notif for: ${task.name} at $tzDateTime1h');
+          } catch (e) {
+            debugPrint('Error scheduling 1h notif: $e');
+          }
+        }
+      }
+
+      // 3. Schedule Exact Deadline Reminder
+      if (task.deadline.isAfter(now)) {
+        final tzDateTimeDeadline = tz.TZDateTime.from(task.deadline, tz.local);
         try {
           await flutterLocalNotificationsPlugin.zonedSchedule(
-            id1d,
-            '🔔 Pengingat H-1 Hari: ${task.name}',
-            'Jangan lupa untuk menyelesaikan tugas ini! 💪',
-            tzDateTime1d,
+            idDeadline,
+            '⏰ Batas Waktu Tugas: ${task.name}',
+            'Waktu untuk menyelesaikan tugas ini telah berakhir! 🏁',
+            tzDateTimeDeadline,
             platformDetails,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
           );
-          debugPrint('Scheduled 1d notif for: ${task.name} at $tzDateTime1d');
+          debugPrint('Scheduled deadline notif for: ${task.name} at $tzDateTimeDeadline');
         } catch (e) {
-          debugPrint('Error scheduling 1d notif: $e');
+          debugPrint('Error scheduling deadline notif: $e');
         }
       }
-    }
-
-    // 2. Schedule H-1 Hour Reminder
-    if (task.remind1h) {
-      final triggerTime1h = task.deadline.subtract(const Duration(hours: 1));
-      if (triggerTime1h.isAfter(now)) {
-        final tzDateTime1h = tz.TZDateTime.from(triggerTime1h, tz.local);
-        try {
-          await flutterLocalNotificationsPlugin.zonedSchedule(
-            id1h,
-            '🚨 Pengingat H-1 Jam: ${task.name}',
-            'Waktu sisa 1 jam lagi! Ayo bereskan! ⚡',
-            tzDateTime1h,
-            platformDetails,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          );
-          debugPrint('Scheduled 1h notif for: ${task.name} at $tzDateTime1h');
-        } catch (e) {
-          debugPrint('Error scheduling 1h notif: $e');
-        }
-      }
-    }
-
-    // 3. Schedule Exact Deadline Reminder
-    if (task.deadline.isAfter(now)) {
-      final tzDateTimeDeadline = tz.TZDateTime.from(task.deadline, tz.local);
-      try {
-        await flutterLocalNotificationsPlugin.zonedSchedule(
-          idDeadline,
-          '⏰ Batas Waktu Tugas: ${task.name}',
-          'Waktu untuk menyelesaikan tugas ini telah berakhir! 🏁',
-          tzDateTimeDeadline,
-          platformDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
-        debugPrint('Scheduled deadline notif for: ${task.name} at $tzDateTimeDeadline');
-      } catch (e) {
-        debugPrint('Error scheduling deadline notif: $e');
-      }
+    } catch (e) {
+      debugPrint('Unhandled error in _scheduleNotification: $e');
     }
   }
 }
