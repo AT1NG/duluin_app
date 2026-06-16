@@ -343,48 +343,6 @@ class TaskDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                if (current.isEmailValid) ...[
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: AppColors.info.withOpacity(0.06),
-                        border: Border.all(color: AppColors.info.withOpacity(0.35), width: 1.5),
-                      ),
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          await EmailHelper.sendEmailReminder(
-                            toEmail: current.emailAddress!,
-                            taskTitle: current.title,
-                            deadline: current.deadline,
-                            time: current.time,
-                          );
-                        },
-                        icon: const Icon(Icons.send_rounded,
-                            size: 16, color: AppColors.info),
-                        label: const Text(
-                          'Kirim Email Sekarang (Manual)',
-                          style: TextStyle(
-                            color: AppColors.info,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide.none,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-
                 const SizedBox(height: 24),
                 const Divider(color: Colors.white10),
                 const SizedBox(height: 12),
