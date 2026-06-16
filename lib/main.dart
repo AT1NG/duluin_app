@@ -21,40 +21,51 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inisialisasi Zona Waktu
-  tz.initializeTimeZones();
   try {
-    final String timeZoneName = await FlutterTimezone.getLocalTimezone().then((info) => info.identifier);
+    tz.initializeTimeZones();
+    final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
     tz.setLocalLocation(tz.getLocation(timeZoneName));
   } catch (e) {
-    debugPrint('Could not get local timezone: $e');
+    debugPrint('Could not get local timezone: $e. Falling back to UTC.');
+    try {
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    } catch (_) {}
   }
 
   // Inisialisasi Format Tanggal Bahasa Indonesia
-  await initializeDateFormatting('id_ID', null);
+  try {
+    await initializeDateFormatting('id_ID', null);
+  } catch (e) {
+    debugPrint('Could not initialize date formatting: $e');
+  }
 
   // Inisialisasi Notifikasi Lokal
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-  const DarwinInitializationSettings initializationSettingsDarwin =
-      DarwinInitializationSettings(
-    requestAlertPermission: true,
-    requestBadgePermission: true,
-    requestSoundPermission: true,
-  );
-  const InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsDarwin,
-  );
+  try {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/launcher_icon');
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+    );
 
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-  );
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+    );
 
-  // Minta Izin Notifikasi (Android 13+)
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.requestNotificationsPermission();
+    // Minta Izin Notifikasi (Android 13+) - Jangan di-await agar tidak menahan startup aplikasi
+    flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+  } catch (e) {
+    debugPrint('Could not initialize local notifications: $e');
+  }
 
   try {
     await Firebase.initializeApp(
@@ -65,18 +76,26 @@ void main() async {
   }
 
   // Lock to portrait
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  try {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  } catch (e) {
+    debugPrint('Could not set preferred orientations: $e');
+  }
 
   // Status bar style
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: AppColors.surface,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
+  try {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.surface,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
+  } catch (e) {
+    debugPrint('Could not set system UI overlay style: $e');
+  }
 
   runApp(const DuluinApp());
 }

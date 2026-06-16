@@ -12,7 +12,7 @@ class AppLogo extends StatelessWidget {
       width: size,
       height: size,
       child: Image.asset(
-        'assets/images/app_logo.png',
+        'assets/images/app_logo_transparent.png',
         fit: BoxFit.contain,
       ),
     );

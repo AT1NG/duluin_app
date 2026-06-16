@@ -14,6 +14,7 @@ class TaskProvider extends ChangeNotifier {
   static const String _deviceKey = 'duluin_device_id';
   static const String _defaultWhatsappKey = 'duluin_default_whatsapp';
   static const String _defaultEmailKey = 'duluin_default_email';
+  static const String _deletedTasksKey = 'duluin_deleted_task_ids';
 
   List<TaskModel> _tasks = [];
   final Set<String> _deletedTaskIds = {};
@@ -197,6 +198,11 @@ class TaskProvider extends ChangeNotifier {
     _defaultWhatsapp = prefs.getString(_defaultWhatsappKey) ?? '';
     _defaultEmail = prefs.getString(_defaultEmailKey) ?? '';
 
+    // Load deleted task IDs
+    final deletedRaw = prefs.getStringList(_deletedTasksKey) ?? [];
+    _deletedTaskIds.clear();
+    _deletedTaskIds.addAll(deletedRaw);
+
     // 2. Load cached tasks first
     final raw = prefs.getStringList(_storageKey) ?? [];
     _tasks = raw
@@ -213,8 +219,8 @@ class TaskProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
 
-    // 3. Sync from Odoo API
-    await syncWithOdoo(showLoading: true);
+    // 3. Sync from Odoo API (run in background, do not block splash screen)
+    syncWithOdoo(showLoading: false);
   }
 
   Future<void> syncWithOdoo({bool showLoading = false}) async {
@@ -224,6 +230,22 @@ class TaskProvider extends ChangeNotifier {
     }
 
     try {
+      // Try to retry pending deletions on Firestore
+      if (_deletedTaskIds.isNotEmpty) {
+        final idsToRetry = List<String>.from(_deletedTaskIds);
+        for (final idStr in idsToRetry) {
+          try {
+            final success = await ApiService.deleteTask(idStr);
+            if (success) {
+              _deletedTaskIds.remove(idStr);
+            }
+          } catch (e) {
+            debugPrint('Retry delete failed for $idStr: $e');
+          }
+        }
+        await _persistDeletedTaskIds();
+      }
+
       // Fetch tasks from Firestore (segregated by deviceId)
       final odooTasks = await ApiService.fetchTasks(deviceId: _deviceId);
       
@@ -338,6 +360,10 @@ class TaskProvider extends ChangeNotifier {
           await _scheduleNotification(createdTask);
           await _persist();
           notifyListeners();
+        } else {
+          // The task was deleted locally before creation finished!
+          // Since the document was created on the server, we must delete it on the server now!
+          await ApiService.deleteTask(createdTask.id);
         }
       }
     } catch (e) {
@@ -375,9 +401,15 @@ class TaskProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _persistDeletedTaskIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_deletedTasksKey, _deletedTaskIds.toList());
+  }
+
   Future<void> deleteTask(dynamic id) async {
     final idStr = id.toString();
     _deletedTaskIds.add(idStr);
+    await _persistDeletedTaskIds();
 
     _tasks.removeWhere((t) => t.id == id);
     await _persist();
@@ -390,7 +422,11 @@ class TaskProvider extends ChangeNotifier {
     await flutterLocalNotificationsPlugin.cancel(baseId + 2000000);
     
     try {
-      await ApiService.deleteTask(id);
+      final success = await ApiService.deleteTask(id);
+      if (success) {
+        _deletedTaskIds.remove(idStr);
+        await _persistDeletedTaskIds();
+      }
     } catch (e) {
       debugPrint('Failed to delete task in Firestore: $e');
     }

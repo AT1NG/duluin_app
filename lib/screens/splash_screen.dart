@@ -38,21 +38,29 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _init() async {
-    final provider = context.read<TaskProvider>();
-    await provider.init();
+    try {
+      final provider = context.read<TaskProvider>();
+      provider.init();
+    } catch (e, stack) {
+      debugPrint('Error during provider init: $e\n$stack');
+    }
 
     await Future.delayed(const Duration(milliseconds: 2000));
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const MainNavigation(),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      );
+      try {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const MainNavigation(),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 400),
+          ),
+        );
+      } catch (e, stack) {
+        debugPrint('Error navigating from splash screen: $e\n$stack');
+      }
     }
   }
 
