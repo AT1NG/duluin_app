@@ -249,14 +249,26 @@ class TaskProvider extends ChangeNotifier {
       // Fetch tasks from Firestore (segregated by deviceId)
       final odooTasks = await ApiService.fetchTasks(deviceId: _deviceId);
       
-      // Preserve any local unsaved tasks (those with "temp_" IDs)
-      final tempTasks = _tasks.where((t) => t.id.toString().startsWith('temp_')).toList();
-      
-      // Filter out tasks that have been locally deleted
-      final filteredOdooTasks = odooTasks.where((t) => !_deletedTaskIds.contains(t.id.toString())).toList();
-      
-      // Merge
-      _tasks = [...tempTasks, ...filteredOdooTasks];
+      // Start with our existing local tasks
+      final Map<String, TaskModel> mergedTasks = {
+        for (final t in _tasks) t.id.toString(): t
+      };
+
+      // Filter out any locally deleted tasks
+      mergedTasks.removeWhere((id, _) => _deletedTaskIds.contains(id));
+
+      // Add or update tasks from Firestore
+      for (final remoteTask in odooTasks) {
+        final remoteId = remoteTask.id.toString();
+        if (_deletedTaskIds.contains(remoteId)) {
+          continue;
+        }
+        
+        // Always trust Firestore version for already synced items
+        mergedTasks[remoteId] = remoteTask;
+      }
+
+      _tasks = mergedTasks.values.toList();
       await _persist();
       
       // Schedule notifications for all loaded active tasks

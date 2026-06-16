@@ -37,6 +37,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
+        bottom: false,
         child: Stack(
           children: [
             CustomScrollView(
@@ -71,7 +72,7 @@ class HomeScreen extends StatelessWidget {
 
             // FAB
             Positioned(
-              bottom: 96,
+              bottom: 82,
               right: 20,
               child: Container(
                 width: 56,

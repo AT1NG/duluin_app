@@ -1,6 +1,7 @@
 // lib/models/task_model.dart
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum TaskPriority { high, medium, low }
 enum TaskType { task, agenda }
@@ -178,6 +179,7 @@ class TaskModel {
       'is_wa_sent': isWaSent,
       'remind_1d': remind1d,
       'remind_1h': remind1h,
+      'type': type.index,
     };
   }
 
@@ -191,18 +193,28 @@ class TaskModel {
     String stateStr = json['state'] ?? 'aktif';
     bool isDoneVal = (stateStr == 'selesai');
 
-    // Check Odoo deadline format
+    // Robust parsing for Firestore Timestamp or String deadlines
     DateTime deadlineVal;
-    try {
-      deadlineVal = DateTime.parse(json['deadline']);
-    } catch (_) {
+    final deadlineRaw = json['deadline'];
+    if (deadlineRaw is Timestamp) {
+      deadlineVal = deadlineRaw.toDate();
+    } else if (deadlineRaw is String) {
       try {
-        // fallback parsing for yyyy-MM-dd HH:mm:ss
-        deadlineVal = DateFormat('yyyy-MM-dd HH:mm:ss').parse(json['deadline']);
-      } catch (e) {
-        deadlineVal = DateTime.now();
+        deadlineVal = DateTime.parse(deadlineRaw);
+      } catch (_) {
+        try {
+          deadlineVal = DateFormat('yyyy-MM-dd HH:mm:ss').parse(deadlineRaw);
+        } catch (_) {
+          deadlineVal = DateTime.now();
+        }
       }
+    } else {
+      deadlineVal = DateTime.now();
     }
+
+    // Read task/agenda type from Firestore, default to TaskType.task (0)
+    final typeIndex = json['type'] ?? 0;
+    final typeVal = TaskType.values[typeIndex];
 
     return TaskModel(
       id: json['id'],
@@ -211,7 +223,7 @@ class TaskModel {
       deadline: deadlineVal,
       priority: priorityVal,
       isDone: isDoneVal,
-      type: TaskType.task, // Odoo records are tasks
+      type: typeVal,
       whatsappNumber: json['whatsapp_number'] ?? '',
       email: json['email'] ?? '',
       remind1d: json['remind_1d'] ?? false,
